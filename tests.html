@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>スクワット プログラムメーカー ロジックのテスト</title>
+<style>
+  body { font-family: system-ui, "Yu Gothic UI", Meiryo, sans-serif; margin: 16px; line-height: 1.6; background: #fff; color: #1a1d21; }
+  #summary { font-size: 1.25rem; font-weight: 700; }
+  .pass { color: #2b8a3e; }
+  .fail { color: #c92a2a; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>ロジックのテスト</h1>
+<p id="summary">実行中…</p>
+<ul id="results"></ul>
+
+<script src="js/sp-data.js"></script>
+<script src="js/sp-program.js"></script>
+<script>
+(function () {
+  'use strict';
+  const SP = window.SP;
+  const D = SP.DATA;
+  const results = [];
+  function test(name, fn) {
+    try { fn(); results.push({ name, ok: true }); }
+    catch (e) { results.push({ name, ok: false, msg: e && e.message ? e.message : String(e) }); }
+  }
+  function eq(a, b, label) {
+    const x = JSON.stringify(a), y = JSON.stringify(b);
+    if (x !== y) throw new Error((label ? label + ': ' : '') + '期待値 ' + y + ' / 実際 ' + x);
+  }
+  function near(a, b, label) {
+    if (!(Math.abs(a - b) <= 1e-6)) throw new Error((label ? label + ': ' : '') + '期待値 ' + b + ' / 実際 ' + a);
+  }
+  function ok(c, label) { if (!c) throw new Error(label || '条件を満たしていません'); }
+  const isStep = x => Math.abs(x / D.step - Math.round(x / D.step)) < 1e-9;
+
+  // ---- 部品 ----
+  test('推定MAX：60kg×5回 → 70kg、10回を超える回数は10回として計算', () => {
+    eq(SP.estimate1RM(60, 5), 70);
+    eq(SP.estimate1RM(60, 15), SP.estimate1RM(60, 10));
+    eq(SP.estimate1RM(0, 5), null);
+  });
+  test('プレート：57.5kg → 片側 15 + 2.5 + 1.25、20kg → バーのみ', () => {
+    eq(SP.formatPlates(57.5), '片側 15 + 2.5 + 1.25');
+    eq(SP.formatPlates(20), 'バーのみ');
+    eq(SP.platesPerSide(142.5).plates, [20, 20, 20, 1.25]);
+    eq(SP.platesPerSide(142.5).remainder, 0);
+  });
+  test('2.5kg刻みの重さは、プレートでちょうど作れる', () => {
+    for (let w = 20; w <= 300; w += 2.5) eq(SP.platesPerSide(w).remainder, 0, w + 'kg');
+  });
+  test('レベルの目安：体重比1.25倍未満は初心者、1.75倍未満は中級者', () => {
+    eq(SP.suggestLevel(80, 65), 'beginner');
+    eq(SP.suggestLevel(100, 80), 'intermediate');
+    eq(SP.suggestLevel(140, 80), 'advanced');
+    eq(SP.suggestLevel(100, ''), null);
+  });
+  test('レベルの伸びの見込みは、スクワット伸び計算機の表と同じ', () => {
+    eq(['beginner', 'intermediate', 'advanced'].map(k => [D.levels[k].low, D.levels[k].high]), [[2.0, 3.5], [1.0, 2.0], [0.5, 1.5]]);
+  });
+  test('8週までは同じペース、9週目からは半分', () => {
+    near(SP.gainPct(8, 2), 16);
+    near(SP.gainPct(12, 2), 20);
+  });
+  test('段階の週の配分：どれも1週以上で、合計は最後の週を除いた週数', () => {
+    Object.keys(D.goals).forEach(g => D.weekOptions.forEach(w => {
+      const a = SP.allocatePhases(w - 1, D.goals[g].phases);
+      ok(a.every(x => x >= 1), g + ' ' + w + '週 ' + a);
+      eq(a[0] + a[1] + a[2], w - 1, g + ' ' + w + '週');
+    }));
+    eq(SP.allocatePhases(7, D.goals.strength.phases), [3, 2, 2]);
+  });
+  test('ウォームアップ：バーから始まり、軽い順で、その日の重さより軽い', () => {
+    const wu = SP.warmupFor(100, 'normal');
+    eq(wu.map(w => w.weight), [20, 40, 60, 80]);
+    eq(SP.warmupFor(20, 'normal'), []);
+    [22.5, 45, 77.5, 150, 250].forEach(w => {
+      const list = SP.warmupFor(w, 'normal');
+      for (let i = 1; i < list.length; i++) ok(list[i].weight > list[i - 1].weight, w + 'kg');
+      list.forEach(x => ok(x.weight < w && isStep(x.weight), w + 'kg ' + x.weight));
+    });
+  });
+  test('不正な入力は既定値に直す', () => {
+    const n = SP.normalizeInput({ max: 100, level: 'x', goal: 'y', freq: 7, weeks: 9, weak: '?', equip: 'moon' });
+    eq([n.level, n.goal, n.freq, n.weeks, n.weak, n.equip], ['beginner', 'strength', 2, 8, 'none', 'gym']);
+    eq(SP.validate(SP.normalizeInput({ max: '' })).length, 1);
+    eq(SP.validate(SP.normalizeInput({ max: 100 })).length, 0);
+  });
+
+  // ---- 全組み合わせ ----
+  const CASES = [];
+  Object.keys(D.levels).forEach(level => Object.keys(D.goals).forEach(goal => [1, 2, 3].forEach(freq =>
+    D.weekOptions.forEach(weeks => Object.keys(D.weakPoints).forEach(weak => Object.keys(D.equipments).forEach(equip =>
+      [40, 100, 200].forEach(max => CASES.push({ max, level, goal, freq, weeks, weak, equip }))))))));
+  const label = c => [c.max + 'kg', c.level, c.goal, '週' + c.freq, c.weeks + '週', c.weak, c.equip].join('/');
+  const PROGS = CASES.map(c => ({ c, p: SP.buildProgram(c) }));
+  const train = p => p.weeks.slice(0, -1);
+
+  test('組み合わせの数：' + CASES.length + '通り', () => ok(CASES.length === 3240));
+  test('週の数と日数が正しく、最後の週は測定か回数チェック', () => {
+    PROGS.forEach(({ c, p }) => {
+      eq(p.weeks.length, c.weeks, label(c));
+      train(p).forEach(w => eq(w.days.length, c.freq, label(c) + ' 第' + w.week + '週'));
+      const last = p.weeks[p.weeks.length - 1];
+      eq(last.phase, D.goals[c.goal].ending, label(c));
+      eq(last.days.length, c.freq === 1 ? 1 : 2, label(c) + ' 最後の週');
+      eq(last.days[last.days.length - 1].type, c.goal === 'hypertrophy' ? 'check' : 'test', label(c));
+    });
+  });
+  test('重さはすべて2.5kg刻みで、バー（20kg）以上', () => {
+    PROGS.forEach(({ c, p }) => p.weeks.forEach(w => w.days.forEach(d => {
+      const ws = d.exercises.filter(e => e.weight != null).map(e => e.weight)
+        .concat((d.warmup || []).map(x => x.weight), (d.attempts || []).map(a => a.weight), d.weight != null ? [d.weight] : []);
+      ws.forEach(x => ok(isStep(x) && x >= D.bar, label(c) + ' 第' + w.week + '週 ' + x));
+    })));
+  });
+  test('重い日の重さは、週を追うごとに下がらない', () => {
+    PROGS.forEach(({ c, p }) => {
+      const hw = train(p).map(w => w.days[0].exercises[0].weight);
+      for (let i = 1; i < hw.length; i++) ok(hw[i] >= hw[i - 1], label(c) + ' ' + hw.join('→'));
+    });
+  });
+  test('同じ週のほかの日は、重い日より軽い', () => {
+    PROGS.forEach(({ c, p }) => train(p).forEach(w => {
+      const h0 = w.days[0].exercises[0];
+      w.days.slice(1).forEach(d => {
+        const m = d.exercises[0];
+        ok(SP.loadPct(m.reps, m.rir) < SP.loadPct(h0.reps, h0.rir), label(c) + ' 第' + w.week + '週 ' + d.label);
+      });
+    }));
+  });
+  test('MAXを伸ばす目的では、筋力・仕上げの段階の重い日はMAXの80%以上', () => {
+    PROGS.filter(x => x.c.goal !== 'hypertrophy').forEach(({ c, p }) => train(p).forEach(w => {
+      if (w.phase !== 'strength' && w.phase !== 'peak') return;
+      const m = w.days[0].exercises[0];
+      ok(SP.loadPct(m.reps, m.rir) >= 0.8, label(c) + ' 第' + w.week + '週');
+    }));
+  });
+  test('脚を太くする目的では、スクワットは8〜15回', () => {
+    PROGS.filter(x => x.c.goal === 'hypertrophy').forEach(({ c, p }) => train(p).forEach(w => w.days.forEach(d => {
+      const m = d.exercises[0];
+      ok(m.reps >= 8 && m.reps <= 15, label(c) + ' 第' + w.week + '週 ' + m.reps + '回');
+    })));
+  });
+  test('スクワットのセット数は2〜5、余力は1回以上', () => {
+    PROGS.forEach(({ c, p }) => p.weeks.forEach(w => w.days.forEach(d => d.exercises.forEach(e => {
+      if (e.kind === 'acc') return;
+      ok(e.sets >= 2 && e.sets <= D.maxMainSets, label(c) + ' セット数 ' + e.sets);
+      ok(e.rir >= 1, label(c) + ' 余力 ' + e.rir);
+    }))));
+  });
+  test('苦手に合わせた種目は、選んだときだけ週に1回入る', () => {
+    PROGS.forEach(({ c, p }) => train(p).forEach(w => {
+      const vars = w.days.flatMap(d => d.exercises.filter(e => e.kind === 'variation'));
+      eq(vars.length, c.weak === 'none' ? 0 : 1, label(c) + ' 第' + w.week + '週');
+      if (vars.length) eq(vars[0].id, D.weakPoints[c.weak].variation.id, label(c));
+    }));
+  });
+  test('同じ日に同じ種目は出てこない', () => {
+    PROGS.forEach(({ c, p }) => p.weeks.forEach(w => w.days.forEach(d => {
+      const ids = d.exercises.map(e => e.id || e.name);
+      eq(new Set(ids).size, ids.length, label(c) + ' 第' + w.week + '週 ' + d.name);
+    })));
+  });
+  test('ラックとダンベルだけのときは、マシンの種目が出てこない', () => {
+    const machines = ['leg_press', 'seated_curl', 'leg_ext'];
+    PROGS.filter(x => x.c.equip === 'rack').forEach(({ c, p }) => p.weeks.forEach(w => w.days.forEach(d =>
+      d.exercises.forEach(e => ok(machines.indexOf(e.id) < 0, label(c) + ' ' + e.id)))));
+  });
+  test('補助種目の数は目的どおり（苦手の種目がある日は1つ減らす）', () => {
+    PROGS.forEach(({ c, p }) => train(p).forEach(w => w.days.forEach(d => {
+      const acc = d.exercises.filter(e => e.kind === 'acc').length;
+      const hasVar = d.exercises.some(e => e.kind === 'variation');
+      eq(acc, D.goals[c.goal].accessoryCount - (hasVar ? 1 : 0), label(c) + ' 第' + w.week + '週 ' + d.name);
+    })));
+  });
+  test('所要時間は5分刻みで、10〜75分', () => {
+    PROGS.forEach(({ c, p }) => p.weeks.forEach(w => w.days.forEach(d =>
+      ok(d.minutes % 5 === 0 && d.minutes >= 10 && d.minutes <= 75, label(c) + ' 第' + w.week + '週 ' + d.name + ' ' + d.minutes + '分'))));
+  });
+  test('測定日：ウォームアップと3本の試技は軽い順で、1本目は今のMAX以上', () => {
+    PROGS.filter(x => x.c.goal !== 'hypertrophy').forEach(({ c, p }) => {
+      const t = p.weeks[p.weeks.length - 1].days.slice(-1)[0];
+      const seq = t.warmup.map(x => x.weight).concat(t.attempts.map(a => a.weight));
+      for (let i = 1; i < seq.length; i++) ok(seq[i] > seq[i - 1], label(c) + ' ' + seq.join('→'));
+      ok(t.attempts[0].weight >= Math.floor(c.max / D.step) * D.step, label(c));
+      eq(t.attempts.length, 3, label(c));
+    });
+  });
+  test('回数チェック：今のMAXの80%で行い、ウォームアップはその手前まで', () => {
+    PROGS.filter(x => x.c.goal === 'hypertrophy').forEach(({ c, p }) => {
+      const d = p.weeks[p.weeks.length - 1].days.slice(-1)[0];
+      eq(d.weight, Math.max(D.bar, Math.round(c.max * 0.8 / D.step) * D.step), label(c));
+      d.warmup.forEach(x => ok(x.weight < d.weight, label(c)));
+    });
+  });
+  test('最後の週の軽い日・軽めの確認は、測定や回数チェックより軽い', () => {
+    PROGS.filter(x => x.c.freq >= 2).forEach(({ c, p }) => {
+      const [first, lastDay] = p.weeks[p.weeks.length - 1].days;
+      const target = lastDay.type === 'check' ? lastDay.weight : lastDay.attempts[0].weight;
+      ok(first.exercises[0].weight < target || first.exercises[0].weight === D.bar, label(c) + ' ' + first.exercises[0].weight + ' / ' + target);
+    });
+  });
+  test('週1回のときは、重い日のセット数を1つ増やす', () => {
+    const a = SP.buildProgram({ max: 100, level: 'beginner', goal: 'strength', freq: 1, weeks: 8 }).weeks[0].days[0].exercises[0].sets;
+    const b = SP.buildProgram({ max: 100, level: 'beginner', goal: 'strength', freq: 2, weeks: 8 }).weeks[0].days[0].exercises[0].sets;
+    eq([a, b], [4, 3]);
+  });
+
+  // ---- 具体例 ----
+  test('例：100kg・初心者・MAXを伸ばす・週2回・8週の1週目', () => {
+    const p = SP.buildProgram({ max: 100, level: 'beginner', goal: 'strength', freq: 2, weeks: 8, weak: 'none', equip: 'gym' });
+    eq(p.weeks[0].days.map(d => d.exercises.map(e => e.kind === 'acc' ? e.id : [e.sets, e.reps, e.rir, e.weight])),
+      [[[3, 6, 3, 77.5], 'rdl', 'bulgarian'], [[3, 9, 3, 72.5], 'leg_press', 'seated_curl']]);
+    eq(p.weeks[0].days[0].warmup.map(w => w.weight), [20, 30, 47.5, 62.5]);
+    eq(p.attempts.map(a => a.weight), [107.5, 115, 122.5]);
+    eq(p.weeks.map(w => w.phaseName), ['基礎', '基礎', '基礎', '筋力', '筋力', '仕上げ', '仕上げ', '測定']);
+  });
+  test('例：一番下で止まる・週3回なら、軽い日にポーズスクワット', () => {
+    const p = SP.buildProgram({ max: 100, level: 'intermediate', goal: 'strength', freq: 3, weeks: 8, weak: 'bottom' });
+    const d = p.weeks[0].days[1];
+    eq(d.label, '軽い日');
+    eq(d.exercises.map(e => e.kind), ['main', 'variation', 'acc']);
+    eq(d.exercises[1].name, 'ポーズスクワット');
+  });
+  test('例：脚を太くする・週3回は、軽い日のかわりに中くらいの日', () => {
+    const p = SP.buildProgram({ max: 100, level: 'beginner', goal: 'hypertrophy', freq: 3, weeks: 8 });
+    eq(p.weeks[0].days.map(d => d.label), ['重い日', '中くらいの日', '回数の日']);
+    eq(p.weeks[0].days.map(d => d.exercises[0].reps), [12, 12, 15]);
+  });
+
+  const ul = document.getElementById('results');
+  results.forEach(r => {
+    const li = document.createElement('li');
+    li.className = r.ok ? 'pass' : 'fail';
+    li.textContent = (r.ok ? 'PASS ' : 'FAIL ') + r.name + (r.msg ? '：' + r.msg : '');
+    ul.appendChild(li);
+  });
+  const failed = results.filter(r => !r.ok).length;
+  const s = document.getElementById('summary');
+  s.textContent = failed ? 'FAIL：' + results.length + '件中 ' + failed + '件失敗' : 'ALL PASS：' + results.length + '件';
+  s.className = failed ? 'fail' : 'pass';
+})();
+</script>
+</body>
+</html>
