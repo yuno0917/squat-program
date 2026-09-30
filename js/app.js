@@ -57,6 +57,8 @@
   }
 
   const kg = x => (Math.round(x * 100) / 100).toString();
+  // 回数の表示（例: 6 → '6rep'、'10回' → '10rep'。秒で数える種目はそのまま）
+  const repText = r => (typeof r === 'number' ? r + 'rep' : String(r).replace(/回$/, 'rep'));
   const rirText = rir => (rir >= 5 ? 'たっぷり残す（あと5回以上）' : 'あと' + rir + '回');
 
   // ---- フォームの状態 ----
@@ -206,9 +208,9 @@
   function warmupBlock(list) {
     if (!list || !list.length) return null;
     return h('details', { class: 'warmup' },
-      h('summary', null, h('span', { class: 'wu-title', text: 'ウォームアップ' }), h('span', { class: 'wu-line', text: list.map(w => kg(w.weight) + '×' + w.reps).join(' → ') })),
+      h('summary', null, h('span', { class: 'wu-title', text: 'ウォームアップ' }), h('span', { class: 'wu-line' }, list.map((w, i) => [i ? ' → ' : null, h('span', { class: 'wu-step', text: kg(w.weight) + 'kg ×' + w.reps + 'rep' })]))),
       h('ol', { class: 'wu-list' }, list.map(w => h('li', null,
-        h('span', { class: 'ts-weight', text: kg(w.weight) + 'kg × ' + w.reps + '回' }),
+        h('span', { class: 'ts-weight', text: kg(w.weight) + 'kg ×' + w.reps + 'rep' }),
         h('span', { class: 'ts-note', text: SP.formatPlates(w.weight) })
       )))
     );
@@ -222,7 +224,7 @@
           h('span', { class: 'badge badge-part', text: e.target }),
           e.long ? h('span', { class: 'badge badge-long', text: '伸ばして効かせる' }) : null
         ),
-        h('div', { class: 'ex-load' }, h('span', { class: 'ex-sets-big', text: e.sets + 'セット × ' + e.repsText })),
+        h('div', { class: 'ex-load' }, h('span', { class: 'ex-sets-big', text: repText(e.repsText) + ' ' + e.sets + 'set' })),
         h('div', { class: 'ex-meta' },
           e.rirText ? h('span', { text: '余力 ' + e.rirText }) : null,
           h('span', { text: '休憩 ' + e.rest })
@@ -237,7 +239,7 @@
       ),
       h('div', { class: 'ex-load' },
         h('span', { class: 'ex-weight' }, kg(e.weight), h('small', { text: 'kg' })),
-        h('span', { class: 'ex-sets', text: e.sets + 'セット × ' + e.reps + '回' })
+        h('span', { class: 'ex-sets', text: '×' + repText(e.reps) + ' ' + e.sets + 'set' })
       ),
       h('div', { class: 'ex-meta' },
         h('span', { text: '余力 ' + rirText(e.rir) }),
@@ -308,8 +310,8 @@
       body = [
         h('p', { class: 'day-lead', text: (w.days.length > 1 ? '軽めの確認の日から2〜3日' : '前の週の最後のトレーニングから3日以上') + 'あけて行います。1本ごとに5分ほど休みます。補助者をつけるか、セーフティバーを正しい高さにしてください。' }),
         h('ol', { class: 'test-steps' },
-          d.warmup.map(x => h('li', null, h('span', { class: 'ts-weight', text: kg(x.weight) + 'kg × ' + x.reps + '回' }), h('span', { class: 'ts-note', text: 'ウォームアップ・' + x.plates }))),
-          d.attempts.map((a, i) => h('li', { class: 'is-attempt' }, h('span', { class: 'ts-weight', text: (i + 1) + '本目 ' + kg(a.weight) + 'kg × 1回' }), h('span', { class: 'ts-note', text: a.note + '・' + a.plates })))
+          d.warmup.map(x => h('li', null, h('span', { class: 'ts-weight', text: kg(x.weight) + 'kg ×' + x.reps + 'rep' }), h('span', { class: 'ts-note', text: 'ウォームアップ・' + x.plates }))),
+          d.attempts.map((a, i) => h('li', { class: 'is-attempt' }, h('span', { class: 'ts-weight', text: (i + 1) + '本目 ' + kg(a.weight) + 'kg ×1rep' }), h('span', { class: 'ts-note', text: a.note + '・' + a.plates })))
         ),
         h('p', { class: 'test-next', text: '1本目が楽に挙がったら2本目へ。きつかったら、そこで終わりにします。' }),
         nextCycleBox('test')
@@ -318,8 +320,8 @@
       body = [
         h('p', { class: 'day-lead', text: (w.days.length > 1 ? '軽い日から2〜3日' : '前の週の最後のトレーニングから3日以上') + 'あけて行います。ウォームアップのあと、' + kg(d.weight) + 'kg（今のMAXの' + Math.round(D.checkPct * 100) + '%）で1セットだけ、あと1回できるところまで続けます。' }),
         h('ol', { class: 'test-steps' },
-          d.warmup.map(x => h('li', null, h('span', { class: 'ts-weight', text: kg(x.weight) + 'kg × ' + x.reps + '回' }), h('span', { class: 'ts-note', text: 'ウォームアップ・' + x.plates }))),
-          h('li', { class: 'is-attempt' }, h('span', { class: 'ts-weight', text: kg(d.weight) + 'kg × できるだけ' }), h('span', { class: 'ts-note', text: 'あと1回できるところで止める・' + d.plates }))
+          d.warmup.map(x => h('li', null, h('span', { class: 'ts-weight', text: kg(x.weight) + 'kg ×' + x.reps + 'rep' }), h('span', { class: 'ts-note', text: 'ウォームアップ・' + x.plates }))),
+          h('li', { class: 'is-attempt' }, h('span', { class: 'ts-weight', text: kg(d.weight) + 'kg ×できるだけ' }), h('span', { class: 'ts-note', text: 'あと1回できるところで止める・' + d.plates }))
         ),
         nextCycleBox('check', d.weight)
       ];

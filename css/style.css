@@ -634,6 +634,7 @@ a.cite-chip:hover { background: var(--light-soft); }
 .warmup[open] summary::before { content: '▾'; }
 .wu-title { font-weight: 700; }
 .wu-line { color: var(--muted); font-variant-numeric: tabular-nums; }
+.wu-step { white-space: nowrap; }
 .wu-list { margin: 6px 0 0; padding-left: 1.6em; font-variant-numeric: tabular-nums; }
 .wu-list li { margin: 2px 0; }
 .wu-list .ts-note { display: inline; margin-left: 8px; }
