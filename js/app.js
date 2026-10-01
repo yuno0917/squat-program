@@ -23,6 +23,7 @@
   const summaryMeta = document.getElementById('summary-meta');
   const factList = document.getElementById('fact-list');
   const calcLink = document.getElementById('calc-link');
+  const progressRow = document.getElementById('progress-row');
   const progressText = document.getElementById('progress-text');
   const resetBtn = document.getElementById('reset-done');
   const tabsEl = document.getElementById('week-tabs');
@@ -105,7 +106,7 @@
       levelHint.textContent = 'MAXは体重の' + (max / bw).toFixed(2) + '倍です。目安は「' + D.levels[lv].name + '」です。';
       if (!levelTouched) setRadio('level', lv);
     } else {
-      levelHint.textContent = '体重を入れると、レベルの目安を表示します。';
+      levelHint.textContent = '体重を入れると、レベルの目安が出ます。';
     }
   }
 
@@ -174,7 +175,7 @@
     if (!current) return;
     const done = loadDone(current.input);
     progressText.textContent = '実施済み ' + done.size + ' / ' + totalDays(current) + '日';
-    resetBtn.hidden = done.size === 0;
+    progressRow.hidden = done.size === 0;
   }
 
   // ---- 描画: 概要 ----
@@ -187,12 +188,10 @@
       h('li', null, h('span', { class: 'fact-name', text: '1回の時間' }), h('span', { class: 'fact-val', text: '約' + Math.min(...mins) + '〜' + Math.max(...mins) + '分' }))
     ];
     if (prog.attempts) {
-      facts.push(h('li', null, h('span', { class: 'fact-name', text: n.weeks + '週目の測定で狙う重さ' }), h('span', { class: 'fact-val', text: prog.attempts.map(a => kg(a.weight)).join(' → ') + 'kg' })));
+      facts.push(h('li', null, h('span', { class: 'fact-name', text: n.weeks + '週目に測る重さ' }), h('span', { class: 'fact-val', text: prog.attempts.map(a => kg(a.weight)).join(' → ') + 'kg' })));
     } else {
-      facts.push(h('li', null, h('span', { class: 'fact-name', text: n.weeks + '週目の確認' }), h('span', { class: 'fact-val', text: '回数で新しいMAXを推定' })));
+      facts.push(h('li', null, h('span', { class: 'fact-name', text: n.weeks + '週目' }), h('span', { class: 'fact-val', text: '回数で新しいMAXを推定' })));
     }
-    const wp = D.weakPoints[n.weak];
-    if (wp.variation) facts.push(h('li', null, h('span', { class: 'fact-name', text: '弱点に合わせた種目' }), h('span', { class: 'fact-val', text: wp.variation.name })));
     factList.replaceChildren(...facts);
 
     const cp = new URLSearchParams();
@@ -220,9 +219,8 @@
     if (e.kind === 'acc') {
       return h('li', { class: 'ex ex-acc' },
         h('div', { class: 'ex-top' },
-          h('span', { text: e.name }),
-          h('span', { class: 'badge badge-part', text: e.target }),
-          e.long ? h('span', { class: 'badge badge-long', text: '伸ばして効かせる' }) : null
+          h('span', { class: 'ex-name', text: e.name }),
+          h('span', { class: 'ex-part', text: e.target })
         ),
         h('div', { class: 'ex-load' }, h('span', { class: 'ex-sets-big', text: repText(e.repsText) + ' ' + e.sets + 'set' })),
         h('div', { class: 'ex-meta' },
@@ -234,8 +232,8 @@
     }
     return h('li', { class: 'ex' + (e.kind === 'variation' ? ' ex-var' : '') },
       h('div', { class: 'ex-top' },
-        h('span', { text: e.name }),
-        e.kind === 'variation' ? h('span', { class: 'badge badge-var', text: '弱点に合わせた種目' }) : null
+        h('span', { class: 'ex-name', text: e.name }),
+        e.kind === 'variation' ? h('span', { class: 'badge badge-var', text: '苦手に合わせた種目' }) : null
       ),
       h('div', { class: 'ex-load' },
         h('span', { class: 'ex-weight' }, kg(e.weight), h('small', { text: 'kg' })),
@@ -244,7 +242,6 @@
       h('div', { class: 'ex-meta' },
         h('span', { text: '余力 ' + rirText(e.rir) }),
         h('span', { text: '休憩 ' + e.rest }),
-        h('span', { text: 'MAXの' + Math.round(e.pctOfMax * 100) + '%' }),
         h('span', { text: SP.formatPlates(e.weight) })
       ),
       e.cue ? h('p', { class: 'ex-cue', text: e.cue }) : null
@@ -341,7 +338,7 @@
     panel.append(
       h('div', { class: 'week-head' },
         h('h3', null, '第' + w.week + '週', h('span', { class: 'badge' + (isEnd ? ' badge-test' : ''), text: w.phaseName })),
-        h('p', { class: 'week-note', text: w.note + (isEnd ? '' : ' 重さは、控えめな見込みでこの週までに伸びたMAX（' + kg(Math.round(w.projMax * 10) / 10) + 'kg）から計算した目安です。') })
+        h('p', { class: 'week-note', text: w.note })
       ),
       h('div', { class: 'days' }, w.days.map(d => renderDay(d, w, done)))
     );
@@ -356,7 +353,7 @@
         type: 'button', role: 'tab', id: 'tab-w' + w.week, 'aria-controls': 'panel-w' + w.week,
         'aria-selected': i === 0 ? 'true' : 'false', tabindex: i === 0 ? '0' : '-1',
         class: 'tab' + (isEnd ? ' is-test' : ''), onclick: () => selectWeek(i, false)
-      }, h('span', { text: w.week + '週' }), h('span', { class: 'tab-tag', text: w.phaseName }));
+      }, h('span', { text: w.week + '週' }), isEnd ? h('span', { class: 'tab-tag', text: w.phaseName }) : null);
     }));
     panelsEl.replaceChildren(...prog.weeks.map((w, i) => renderWeek(w, i, done)));
   }

@@ -47,16 +47,15 @@
 
 <header class="site-header">
   <div class="wrap">
-    <p class="eyebrow">無料・登録不要</p>
     <h1>スクワット プログラムメーカー</h1>
-    <p class="lead">スクワットのMAXを入れるだけで、スクワット専用の4〜12週間プログラムを自動で作ります。目的、週の回数、弱点に合わせて、毎回の重さ、ウォームアップ、プレートの付け方、補助種目まで出します。決め方には、それぞれ根拠の研究をつけています。</p>
+    <p class="lead">MAXを入れるだけで、スクワット専用の4〜12週間プログラムを作ります。</p>
   </div>
 </header>
 
 <main class="wrap">
 
   <section class="card" id="form-section" aria-labelledby="form-title">
-    <h2 id="form-title"><span class="step-num">1</span>あなたの条件</h2>
+    <h2 id="form-title">あなたの条件</h2>
     <form id="prog-form" novalidate>
       <p class="error" id="form-error" role="alert" hidden></p>
 
@@ -75,32 +74,32 @@
             <span class="times">×</span>
             <span class="num"><input type="number" name="liftR" inputmode="numeric" min="1" max="20" step="1" placeholder="5" aria-label="回数"><span class="unit">回</span></span>
             <p class="hint" id="est-out" aria-live="polite"></p>
-            <p class="hint">限界まで挙げた回数を入れます。10回を超える場合は、10回として計算します。</p>
+            <p class="hint">限界まで挙げた回数を入れます（10回まで）。</p>
           </div>
         </div>
 
         <label class="field">
           <span class="field-name">体重<small>なくてもOK</small></span>
           <span class="num"><input type="number" name="bw" inputmode="decimal" min="30" max="200" step="0.1" placeholder="65"><span class="unit">kg</span></span>
-          <span class="hint" id="level-hint" aria-live="polite">体重を入れると、レベルの目安を表示します。</span>
+          <span class="hint" id="level-hint" aria-live="polite">体重を入れると、レベルの目安が出ます。</span>
         </label>
       </div>
 
       <fieldset>
         <legend>レベル</legend>
         <div class="seg">
-          <label><input type="radio" name="level" value="beginner" checked><span>初心者<small>MAXが体重の1.25倍未満</small></span></label>
-          <label><input type="radio" name="level" value="intermediate"><span>中級者<small>体重の1.25〜1.75倍</small></span></label>
-          <label><input type="radio" name="level" value="advanced"><span>上級者<small>体重の1.75倍以上</small></span></label>
+          <label><input type="radio" name="level" value="beginner" checked><span>初心者</span></label>
+          <label><input type="radio" name="level" value="intermediate"><span>中級者</span></label>
+          <label><input type="radio" name="level" value="advanced"><span>上級者</span></label>
         </div>
       </fieldset>
 
       <fieldset>
         <legend>目的</legend>
         <div class="seg">
-          <label><input type="radio" name="goal" value="strength" checked><span>MAXを伸ばす<small>最後の週にMAXを測る</small></span></label>
-          <label><input type="radio" name="goal" value="hypertrophy"><span>脚を太くする<small>回数を多めにして量を積む</small></span></label>
-          <label><input type="radio" name="goal" value="both"><span>両方<small>重い日と回数の日を分ける</small></span></label>
+          <label><input type="radio" name="goal" value="strength" checked><span>MAXを伸ばす</span></label>
+          <label><input type="radio" name="goal" value="hypertrophy"><span>脚を太くする</span></label>
+          <label><input type="radio" name="goal" value="both"><span>両方</span></label>
         </div>
       </fieldset>
 
@@ -134,13 +133,12 @@
             <option value="middle">立ち上がる途中で止まる</option>
             <option value="lean">上体が前に倒れる</option>
           </select>
-          <span class="hint">選ぶと、週に1回、苦手に合わせた種目が入ります。</span>
         </label>
         <fieldset class="field">
           <legend>トレーニングする場所</legend>
           <div class="seg">
-            <label><input type="radio" name="equip" value="gym" checked><span>ジム<small>マシンが使える</small></span></label>
-            <label><input type="radio" name="equip" value="rack"><span>ラックとダンベルだけ<small>マシンがない</small></span></label>
+            <label><input type="radio" name="equip" value="gym" checked><span>ジム</span></label>
+            <label><input type="radio" name="equip" value="rack"><span>ラックとダンベルだけ</span></label>
           </div>
         </fieldset>
       </div>
@@ -151,22 +149,19 @@
 
   <section id="result" aria-labelledby="result-title" hidden>
     <div class="card">
-      <h2 id="result-title"><span class="step-num">2</span>あなたのスクワットプログラム</h2>
+      <h2 id="result-title">あなたのスクワットプログラム</h2>
       <p class="summary-meta" id="summary-meta"></p>
       <ul class="summary-list fact-list" id="fact-list"></ul>
-      <p class="progress-row"><span id="progress-text"></span><button type="button" class="link-btn" id="reset-done" hidden>チェックを消す</button></p>
-      <p class="hint">「やった」のチェックは、この端末のブラウザだけに保存されます。</p>
-      <p class="more-link"><a id="calc-link" href="/squat-goal/">この期間で何kg伸びそうか、スクワット伸び計算機で見る</a></p>
-
-      <div class="rules">
-        <p><strong>重さの調整：</strong>表の重さは目安です。1セット目で余力が指定より2回以上多ければ、次のセットから2.5〜5kg上げます。余力がなければ2.5〜5kg下げます。<a class="cite-chip" href="/squat-goal/evidence.html#autoreg">根拠</a></p>
-        <p><strong>予定の回数ができなかったら：</strong>その日は無理をせずに終えて、次回は同じ重さでやり直します。2回続けてできなければ、MAXを5%下げて作り直します。<span class="cite-chip cite-none">一般的な目安</span></p>
-        <p><strong>しゃがむ深さ：</strong>太ももが床と平行になるより深くしゃがみます。<a class="cite-chip" href="/squat-goal/evidence.html#depth">根拠</a></p>
-      </div>
-
+      <ul class="rules">
+        <li>1セット目の余力が指定より2回以上多ければ、次のセットから2.5〜5kg上げます。余力がなければ2.5〜5kg下げます。<a class="cite-chip" href="/squat-goal/evidence.html#autoreg">根拠</a></li>
+        <li>予定の回数ができなかったら、次回も同じ重さで行います。2回続けてできなければ、MAXを5%下げて作り直します。</li>
+        <li>太ももが床と平行になるより深くしゃがみます。<a class="cite-chip" href="/squat-goal/evidence.html#depth">根拠</a></li>
+      </ul>
+      <p class="progress-row" id="progress-row" hidden><span id="progress-text"></span><button type="button" class="link-btn" id="reset-done">チェックを消す</button></p>
       <div class="actions">
-        <button type="button" class="secondary" id="share-btn">このプログラムのリンクをコピー</button>
-        <button type="button" class="secondary" id="print-btn">印刷する</button>
+        <button type="button" class="secondary" id="share-btn">リンクをコピー</button>
+        <button type="button" class="secondary" id="print-btn">印刷</button>
+        <a id="calc-link" href="/squat-goal/">伸びの予測を見る</a>
       </div>
       <div class="share-box" id="share-box" hidden>
         <input type="text" id="share-url" readonly aria-label="共有リンク">
@@ -176,12 +171,13 @@
 
     <div class="tabs" role="tablist" aria-label="週を選ぶ" id="week-tabs"></div>
     <div id="week-panels"></div>
-    <p class="warmup-note">プレートは、20kgのバーに付ける片側の重さ（kg）です。痛みが出た種目は中止してください。ベンチプレスやデッドリフトも組みたい場合は、<a href="/big3-menu/">BIG3 メニューメーカー</a>を使ってください。</p>
   </section>
 
   <section class="card article" aria-labelledby="how-title">
     <h2 id="how-title">このプログラムの決め方</h2>
-    <p>研究でわかっていることは、その研究を紹介しているページにリンクしています。研究で確かめられていない部分は「一般的な目安」と書いています。</p>
+    <p>重さは「回数」と「余力（あと何回できるか）」から決め、レベルに合わせて少しずつ重くします。それぞれの決め方の根拠は、下の一覧にまとめています。研究で確かめられていない部分は「一般的な目安」と書いています。</p>
+    <details class="more">
+    <summary>決め方と根拠の一覧を見る</summary>
     <div class="table-wrap">
       <table class="data-table">
         <caption>決め方と根拠</caption>
@@ -199,13 +195,14 @@
           <tr><td>重さは、レベルに合わせて少しずつ重くする</td><td><a href="/squat-goal/evidence.html#rate">体重に比べてMAXが軽い人ほど速く伸びた</a>。控えめなペースで見込んでいます</td></tr>
           <tr><td>シーテッドレッグカールを入れる</td><td><a href="/body-menu/evidence.html#length">座って行うレッグカールのほうが、太ももの裏が大きくなった</a></td></tr>
           <tr><td>苦手に合わせた種目</td><td>一般的な目安（<a href="#weak">下で説明</a>）</td></tr>
-          <tr><td>ウォームアップの段階、休憩の長さ、段階の週の配分</td><td>一般的な目安</td></tr>
+          <tr><td>ウォームアップの段階、休憩の長さ、段階の週の配分、予定の回数ができなかったときの戻し方</td><td>一般的な目安</td></tr>
         </tbody>
       </table>
     </div>
+    </details>
 
     <h2 id="weak">苦手に合わせた種目について</h2>
-    <p>苦手なところに合わせて種目を変える方法は、指導の現場でよく使われています。ただし、その効果を比べた研究は見つかりませんでした。目安として使ってください。</p>
+    <p>「苦手なところ」を選ぶと、週に1回、次の種目が入ります。指導の現場でよく使われる方法ですが、効果を比べた研究は見つかりませんでした。目安として使ってください。</p>
     <ul>
       <li><strong>一番下で止まる → ポーズスクワット：</strong>一番下で2秒止まってから立ち上がり、反動を使わずに切り返す練習をします。</li>
       <li><strong>途中で止まる → ピンスクワット：</strong>止まりやすい高さから立ち上がる練習をします。ラックのセーフティバーを使います。</li>
@@ -214,16 +211,15 @@
     <p>重さは、ポーズスクワットがバックスクワットのMAXの約87%、ピンスクワットが約85%、フロントスクワットが約80%を、その種目のMAXとして計算しています。人によって差が大きいので、1セット目の余力で調整してください。</p>
 
     <h2>よくある質問</h2>
-    <h3>スクワット伸び計算機のメニューとの違いは？</h3>
-    <p><a href="/squat-goal/">スクワット伸び計算機</a>は、何週間で何kg伸びるかの予測が中心で、メニューはバックスクワットだけです。こちらは目的、週の回数、苦手なところを選べて、ウォームアップ、プレート、補助種目まで入ったプログラムを作ります。</p>
-    <h3>週1回でも伸びますか？</h3>
-    <p>週の合計の量が同じなら、週の回数による差はほぼなかったと報告されています。週1回の場合は、その日のセット数を1つ増やしています。</p>
-    <h3>プログラムが終わったら？</h3>
-    <p>最後の週の測定か回数チェックの結果を、その日のカードに入れてください。新しいMAXで次のプログラムを作れます。</p>
-    <h3>ベルトは使ったほうがいい？</h3>
-    <p>重い重さを扱うときに使う人が多いです。選び方は<a href="/big3-menu/articles/belt.html">トレーニングベルトの記事</a>で紹介しています。</p>
-    <h3>フォームがわかりません。</h3>
-    <p><a href="/big3-menu/articles/squat-form.html">スクワットのフォームの記事</a>で、初心者がつまずくポイントを紹介しています。</p>
+    <div class="faq">
+      <details><summary>スクワット伸び計算機との違いは？</summary><p><a href="/squat-goal/">スクワット伸び計算機</a>は、何週間で何kg伸びるかを予測します。こちらは、その期間のプログラムを作ります。</p></details>
+      <details><summary>週1回でも伸びますか？</summary><p>週の合計の量が同じなら、週の回数による差はほぼなかったと報告されています。週1回の場合は、その日のセット数を1つ増やしています。</p></details>
+      <details><summary>プログラムが終わったら？</summary><p>最後の週の測定か回数チェックの結果を、その日のカードに入れてください。新しいMAXで次のプログラムを作れます。</p></details>
+      <details><summary>ベルトは使ったほうがいい？</summary><p>重い重さを扱うときに使う人が多いです。選び方は<a href="/big3-menu/articles/belt.html">トレーニングベルトの記事</a>で紹介しています。</p></details>
+      <details><summary>フォームがわかりません。</summary><p><a href="/big3-menu/articles/squat-form.html">スクワットのフォームの記事</a>で、初心者がつまずくポイントを紹介しています。</p></details>
+      <details><summary>「やった」のチェックはどこに保存されますか？</summary><p>この端末のブラウザの中だけに保存されます。ほかの端末には引き継がれません。</p></details>
+      <details><summary>ベンチプレスやデッドリフトも組みたい。</summary><p><a href="/big3-menu/">BIG3 メニューメーカー</a>で、3種目をまとめて組めます。</p></details>
+    </div>
 
     <h2 id="refs">出典</h2>
     <ol class="ref-list">
