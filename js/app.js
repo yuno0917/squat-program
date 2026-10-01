@@ -18,7 +18,8 @@
   const maxField = document.getElementById('max-field');
   const repsField = document.getElementById('reps-field');
   const estOut = document.getElementById('est-out');
-  const levelHint = document.getElementById('level-hint');
+  const modeBtn = document.getElementById('mode-btn');
+  const moreSettings = document.getElementById('more-settings');
   const resultSection = document.getElementById('result');
   const summaryMeta = document.getElementById('summary-meta');
   const factList = document.getElementById('fact-list');
@@ -35,7 +36,8 @@
   const shareStatus = document.getElementById('share-status');
 
   let current = null;
-  let levelTouched = false;
+  // 伸び計算機から来たときなどに URL で渡された体重（と性別）。入力欄はないが、レベルの目安と計算機へのリンクに使う
+  let carry = {};
 
   // ---- 小さな DOM ヘルパー（文字列は必ず textContent として入れる） ----
   function h(tag, props, ...children) {
@@ -66,7 +68,7 @@
   function readForm() {
     const e = form.elements;
     return {
-      mode: e.mode.value, max: e.max.value, liftW: e.liftW.value, liftR: e.liftR.value, bw: e.bw.value,
+      mode: e.mode.value, max: e.max.value, liftW: e.liftW.value, liftR: e.liftR.value,
       level: e.level.value, goal: e.goal.value, freq: e.freq.value, weeks: e.weeks.value, weak: e.weak.value, equip: e.equip.value
     };
   }
@@ -79,10 +81,18 @@
   function applyState(s) {
     if (!s || typeof s !== 'object') return;
     const e = form.elements;
-    ['max', 'liftW', 'liftR', 'bw'].forEach(k => { if (s[k] != null) e[k].value = s[k]; });
+    ['max', 'liftW', 'liftR'].forEach(k => { if (s[k] != null) e[k].value = s[k]; });
     ['weeks', 'weak'].forEach(k => { if (s[k] != null) e[k].value = String(s[k]); });
-    ['mode', 'level', 'goal', 'freq', 'equip'].forEach(k => { if (s[k] != null) setRadio(k, s[k]); });
-    if (s.level) levelTouched = true;
+    ['level', 'goal', 'freq', 'equip'].forEach(k => { if (s[k] != null) setRadio(k, s[k]); });
+    e.mode.value = s.mode === 'reps' ? 'reps' : 'max';
+    carry = { bw: Number(s.bw) > 0 ? s.bw : '', sex: s.sex || '' };
+    // 体重がわかっていてレベルの指定がないときは、体重比からレベルの目安を選んでおく
+    if (!s.level && carry.bw) {
+      const lv = SP.suggestLevel(currentMax(readForm()), Number(carry.bw), carry.sex);
+      if (lv) setRadio('level', lv);
+    }
+    // 初期値と違う設定があれば、折りたたみを開いておく
+    moreSettings.open = (s.weeks != null && Number(s.weeks) !== D.defaultWeeks) || (!!s.weak && s.weak !== 'none') || (!!s.equip && s.equip !== 'gym');
     syncMode();
   }
 
@@ -97,17 +107,9 @@
     const reps = e.mode.value === 'reps';
     maxField.hidden = reps;
     repsField.hidden = !reps;
+    modeBtn.textContent = reps ? 'MAXを直接入れる' : 'MAXがわからないときは、重さと回数から計算する';
     const est = SP.estimate1RM(e.liftW.value, e.liftR.value);
     estOut.textContent = reps && est ? '推定MAX：' + kg(est) + 'kg' : '';
-    const max = currentMax(readForm());
-    const bw = Number(e.bw.value);
-    const lv = SP.suggestLevel(max, bw);
-    if (lv) {
-      levelHint.textContent = 'MAXは体重の' + (max / bw).toFixed(2) + '倍です。目安は「' + D.levels[lv].name + '」です。';
-      if (!levelTouched) setRadio('level', lv);
-    } else {
-      levelHint.textContent = '体重を入れると、レベルの目安が出ます。';
-    }
   }
 
   // ---- 保存（使えないブラウザでも動くように try/catch で囲む） ----
@@ -124,7 +126,7 @@
   }
 
   // ---- URL での共有 ----
-  function toParams(n, bw) {
+  function toParams(n) {
     const p = new URLSearchParams();
     p.set('m', kg(n.max));
     p.set('lv', CODES.level[n.level]);
@@ -133,7 +135,6 @@
     p.set('wk', String(n.weeks));
     p.set('wp', CODES.weak[n.weak]);
     p.set('eq', CODES.equip[n.equip]);
-    if (bw > 0) p.set('bw', kg(bw));
     return p;
   }
   const decode = (map, code) => Object.keys(map).find(k => map[k] === code);
@@ -149,13 +150,13 @@
     };
   }
   const baseUrl = () => location.href.split(/[?#]/)[0];
-  function updateUrl(n, bw) {
-    try { history.replaceState(null, '', '?' + toParams(n, bw).toString()); } catch (e) { /* file:// などで失敗しても続行 */ }
+  function updateUrl(n) {
+    try { history.replaceState(null, '', '?' + toParams(n).toString()); } catch (e) { /* file:// などで失敗しても続行 */ }
   }
 
   // ---- 実施チェック（この端末のブラウザだけに保存） ----
   function doneKey(n) {
-    return DONE_KEY + toParams(n, 0).toString();
+    return DONE_KEY + toParams(n).toString();
   }
   function loadDone(n) {
     try {
@@ -179,7 +180,7 @@
   }
 
   // ---- 描画: 概要 ----
-  function renderSummary(prog, bw) {
+  function renderSummary(prog) {
     const n = prog.input;
     summaryMeta.textContent = ['MAX ' + kg(n.max) + 'kg', D.levels[n.level].name, prog.goal.name, '週' + n.freq + '回', n.weeks + '週間', D.equipments[n.equip].name].join('・');
     const mins = prog.weeks.slice(0, -1).flatMap(w => w.days.map(d => d.minutes));
@@ -196,9 +197,8 @@
 
     const cp = new URLSearchParams();
     cp.set('m', kg(n.max));
-    if (bw > 0) cp.set('bw', kg(bw));
+    if (carry.bw) cp.set('bw', kg(Number(carry.bw)));
     cp.set('wk', String(n.weeks));
-    cp.set('f', n.freq === 2 ? '2' : '3');
     calcLink.href = '/squat-goal/?' + cp.toString();
     updateProgress();
   }
@@ -250,7 +250,7 @@
 
   function rebuildWith(max) {
     const e = form.elements;
-    setRadio('mode', 'max');
+    e.mode.value = 'max';
     e.max.value = kg(max);
     syncMode();
     if (generate()) {
@@ -399,14 +399,13 @@
       return false;
     }
     errorBox.hidden = true;
-    const bw = Number(s.bw);
     current = SP.buildProgram(n);
-    renderSummary(current, bw);
+    renderSummary(current);
     renderMenu(current);
     resultSection.hidden = false;
     shareBox.hidden = true;
     save(s);
-    updateUrl(current.input, bw);
+    updateUrl(current.input);
     return true;
   }
 
@@ -414,12 +413,14 @@
     e.preventDefault();
     if (generate()) resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  form.addEventListener('change', e => {
-    if (e.target.name === 'level') levelTouched = true;
-    if (e.target.name === 'mode') syncMode();
-  });
   form.addEventListener('input', e => {
-    if (['liftW', 'liftR', 'max', 'bw'].indexOf(e.target.name) >= 0) syncMode();
+    if (e.target.name === 'liftW' || e.target.name === 'liftR') syncMode();
+  });
+  modeBtn.addEventListener('click', () => {
+    const e = form.elements;
+    e.mode.value = e.mode.value === 'reps' ? 'max' : 'reps';
+    syncMode();
+    (e.mode.value === 'reps' ? e.liftW : e.max).focus();
   });
 
   resetBtn.addEventListener('click', () => {
@@ -432,7 +433,7 @@
 
   shareBtn.addEventListener('click', async () => {
     if (!current) return;
-    const url = baseUrl() + '?' + toParams(current.input, Number(form.elements.bw.value)).toString();
+    const url = baseUrl() + '?' + toParams(current.input).toString();
     shareInput.value = url;
     shareBox.hidden = false;
     try {
@@ -456,7 +457,6 @@
   const initial = fromUrl || load();
   if (initial) {
     applyState(initial);
-    if (fromUrl && !fromUrl.hasLevel) levelTouched = false;
     syncMode();
     if (currentMax(readForm())) generate();
   } else {

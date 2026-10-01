@@ -58,31 +58,20 @@
     <h2 id="form-title">あなたの条件</h2>
     <form id="prog-form" novalidate>
       <p class="error" id="form-error" role="alert" hidden></p>
+      <input type="hidden" name="mode" value="max">
 
-      <div class="field-grid">
-        <div class="field">
-          <span class="field-name" id="max-label">スクワットのMAX</span>
-          <div class="seg seg-compact seg-mini" role="radiogroup" aria-labelledby="max-label">
-            <label><input type="radio" name="mode" value="max" checked><span>MAXを知っている</span></label>
-            <label><input type="radio" name="mode" value="reps"><span>重さ×回数から推定</span></label>
-          </div>
-          <div id="max-field">
-            <span class="num"><input type="number" name="max" inputmode="decimal" min="20" max="400" step="0.5" placeholder="80" aria-label="スクワットのMAX（kg）"><span class="unit">kg</span></span>
-          </div>
-          <div id="reps-field" hidden>
-            <span class="num"><input type="number" name="liftW" inputmode="decimal" min="20" max="400" step="0.5" placeholder="70" aria-label="挙げた重さ（kg）"><span class="unit">kg</span></span>
-            <span class="times">×</span>
-            <span class="num"><input type="number" name="liftR" inputmode="numeric" min="1" max="20" step="1" placeholder="5" aria-label="回数"><span class="unit">回</span></span>
-            <p class="hint" id="est-out" aria-live="polite"></p>
-            <p class="hint">限界まで挙げた回数を入れます（10回まで）。</p>
-          </div>
+      <div class="field form-field">
+        <span class="field-name" id="max-label">スクワットのMAX</span>
+        <div id="max-field">
+          <span class="num"><input type="number" name="max" inputmode="decimal" min="20" max="400" step="0.5" placeholder="80" aria-labelledby="max-label"><span class="unit">kg</span></span>
         </div>
-
-        <label class="field">
-          <span class="field-name">体重<small>なくてもOK</small></span>
-          <span class="num"><input type="number" name="bw" inputmode="decimal" min="30" max="200" step="0.1" placeholder="65"><span class="unit">kg</span></span>
-          <span class="hint" id="level-hint" aria-live="polite">体重を入れると、レベルの目安が出ます。</span>
-        </label>
+        <div id="reps-field" hidden>
+          <span class="num"><input type="number" name="liftW" inputmode="decimal" min="20" max="400" step="0.5" placeholder="70" aria-label="挙げた重さ（kg）"><span class="unit">kg</span></span>
+          <span class="times">×</span>
+          <span class="num"><input type="number" name="liftR" inputmode="numeric" min="1" max="20" step="1" placeholder="5" aria-label="回数"><span class="unit">回</span></span>
+          <p class="hint" id="est-out" aria-live="polite"></p>
+        </div>
+        <button type="button" class="link-btn" id="mode-btn">MAXがわからないときは、重さと回数から計算する</button>
       </div>
 
       <fieldset>
@@ -92,6 +81,7 @@
           <label><input type="radio" name="level" value="intermediate"><span>中級者</span></label>
           <label><input type="radio" name="level" value="advanced"><span>上級者</span></label>
         </div>
+        <p class="hint">目安：MAXが体重の1.25倍未満なら初心者、1.75倍以上なら上級者です。</p>
       </fieldset>
 
       <fieldset>
@@ -103,45 +93,46 @@
         </div>
       </fieldset>
 
-      <div class="field-grid">
-        <fieldset class="field">
-          <legend>スクワットをする回数</legend>
-          <div class="seg seg-compact">
-            <label><input type="radio" name="freq" value="1"><span>週1回</span></label>
-            <label><input type="radio" name="freq" value="2" checked><span>週2回</span></label>
-            <label><input type="radio" name="freq" value="3"><span>週3回</span></label>
-          </div>
-        </fieldset>
-        <label class="field">
-          <span class="field-name">期間</span>
-          <select name="weeks">
-            <option value="4">4週間</option>
-            <option value="6">6週間</option>
-            <option value="8" selected>8週間</option>
-            <option value="10">10週間</option>
-            <option value="12">12週間</option>
-          </select>
-        </label>
-      </div>
+      <fieldset>
+        <legend>スクワットをする回数</legend>
+        <div class="seg seg-compact">
+          <label><input type="radio" name="freq" value="1"><span>週1回</span></label>
+          <label><input type="radio" name="freq" value="2" checked><span>週2回</span></label>
+          <label><input type="radio" name="freq" value="3"><span>週3回</span></label>
+        </div>
+      </fieldset>
 
-      <div class="field-grid">
-        <label class="field">
-          <span class="field-name">苦手なところ</span>
-          <select name="weak" class="select-wide">
-            <option value="none" selected>特になし・わからない</option>
-            <option value="bottom">しゃがんだ一番下で止まる</option>
-            <option value="middle">立ち上がる途中で止まる</option>
-            <option value="lean">上体が前に倒れる</option>
-          </select>
-        </label>
-        <fieldset class="field">
-          <legend>トレーニングする場所</legend>
-          <div class="seg">
-            <label><input type="radio" name="equip" value="gym" checked><span>ジム</span></label>
-            <label><input type="radio" name="equip" value="rack"><span>ラックとダンベルだけ</span></label>
-          </div>
-        </fieldset>
-      </div>
+      <details class="more form-more" id="more-settings">
+        <summary>期間・苦手なところ・場所を変える</summary>
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-name">期間</span>
+            <select name="weeks">
+              <option value="4">4週間</option>
+              <option value="6">6週間</option>
+              <option value="8" selected>8週間</option>
+              <option value="10">10週間</option>
+              <option value="12">12週間</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-name">苦手なところ</span>
+            <select name="weak" class="select-wide">
+              <option value="none" selected>特になし・わからない</option>
+              <option value="bottom">しゃがんだ一番下で止まる</option>
+              <option value="middle">立ち上がる途中で止まる</option>
+              <option value="lean">上体が前に倒れる</option>
+            </select>
+          </label>
+          <fieldset class="field">
+            <legend>トレーニングする場所</legend>
+            <div class="seg">
+              <label><input type="radio" name="equip" value="gym" checked><span>ジム</span></label>
+              <label><input type="radio" name="equip" value="rack"><span>ラックとダンベルだけ</span></label>
+            </div>
+          </fieldset>
+        </div>
+      </details>
 
       <button type="submit" class="primary">プログラムを作る</button>
     </form>
